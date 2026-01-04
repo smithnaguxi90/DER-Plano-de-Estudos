@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DER-DF: Planejador Estratégico de Estudos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ["Inter", "sans-serif"] },
+            colors: {
+              slate: { 850: "#1e293b" }, // Custom darker slate
+            },
+            animation: {
+              "fade-in": "fadeIn 0.3s ease-out forwards",
+              "slide-up": "slideUp 0.4s ease-out forwards",
+              "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+            },
+            keyframes: {
+              fadeIn: { "0%": { opacity: "0" }, "100%": { opacity: "1" } },
+              slideUp: {
+                "0%": { opacity: "0", transform: "translateY(10px)" },
+                "100%": { opacity: "1", transform: "translateY(0)" },
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      /* Custom Styles for specific UI components */
+      .chart-container {
+        position: relative;
+        width: 100%;
+        height: 320px;
+        margin: 0 auto;
+      }
+
+      /* Custom Checkbox Styling */
+      .custom-checkbox input:checked + div {
+        background-color: #10b981;
+        border-color: #10b981;
+        transform: scale(1.05);
+      }
+      .custom-checkbox input:checked + div::after {
+        content: "";
+        display: block;
+        width: 6px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+        margin-top: -2px;
+      }
+      .custom-checkbox div {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* Timeline styling */
+      .timeline-line::before {
+        content: "";
+        position: absolute;
+        left: 24px;
+        top: 20px;
+        bottom: -20px;
+        width: 2px;
+        background-color: #e2e8f0;
+        z-index: 0;
+      }
+      .timeline-item:last-child .timeline-line::before {
+        display: none;
+      }
+    </style>
+    <!-- Chosen Palette: Professional Slate (Dark/Light), Accent Blue/Rose/Emerald -->
+  </head>
+  <body
+    class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-100 selection:text-blue-900"
+  >
+    <!-- Navigation / Header -->
+    <header
+      class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 transition-all duration-300"
+    >
+      <div
+        class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center"
+      >
+        <div
+          class="flex items-center gap-3 cursor-pointer"
+          onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
+        >
+          <div
+            class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+          </div>
+          <div>
+            <h1
+              class="text-lg font-bold text-slate-900 tracking-tight leading-none"
+            >
+              DER-DF <span class="text-blue-600">Estrategista</span>
+            </h1>
+            <p
+              class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mt-0.5"
+            >
+              Agente Administrativo
+            </p>
+          </div>
+        </div>
+        <div class="hidden sm:flex flex-col items-end">
+          <p
+            class="text-[10px] uppercase text-slate-400 font-bold tracking-wider"
+          >
+            Meta Atual
+          </p>
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+            <p class="text-xs text-slate-700 font-semibold">
+              Zerar Específicas (5 semanas)
+            </p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-8 space-y-10">
+      <!-- Hero / Context Section -->
+      <section class="animate-slide-up" style="animation-delay: 0.1s">
+        <div
+          class="bg-slate-900 text-white rounded-2xl p-6 md:p-10 shadow-xl relative overflow-hidden group"
+        >
+          <!-- Decorative background element -->
+          <div
+            class="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full mix-blend-overlay filter blur-3xl opacity-20 -translate-y-1/2 translate-x-1/2 group-hover:opacity-30 transition-opacity duration-700"
+          ></div>
+
+          <div class="relative z-10">
+            <div
+              class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+            >
+              <div class="max-w-2xl">
+                <h2 class="text-2xl md:text-3xl font-bold mb-3 tracking-tight">
+                  Sua Estratégia de Aprovação
+                </h2>
+                <p class="text-slate-300 text-lg leading-relaxed">
+                  Este painel otimiza sua rotina de 2h diárias com foco em
+                  consistência. Gerencie ciclos, acompanhe aulas e visualize sua
+                  evolução.
+                </p>
+              </div>
+              <div class="flex flex-wrap gap-3 w-full md:w-auto">
+                <button
+                  onclick="App.scrollTo('planner')"
+                  class="flex-1 md:flex-none bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-medium transition-all shadow-lg shadow-blue-900/20 active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect
+                      x="3"
+                      y="4"
+                      width="18"
+                      height="18"
+                      rx="2"
+                      ry="2"
+                    ></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                  <span>Ver Ciclos</span>
+                </button>
+                <button
+                  onclick="App.scrollTo('tracker')"
+                  class="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-lg font-medium transition-all shadow-lg shadow-emerald-900/20 active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <line x1="12" y1="20" x2="12" y2="10"></line>
+                    <line x1="18" y1="20" x2="18" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="16"></line>
+                  </svg>
+                  <span>Progresso</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Strategy Grid -->
+      <section
+        class="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-slide-up"
+        style="animation-delay: 0.2s"
+      >
+        <!-- Methodology Cards (Left - 8 cols) -->
+        <div class="lg:col-span-8 space-y-4">
+          <div class="flex items-center gap-2 mb-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-6 w-6 text-slate-700"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polygon
+                points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
+              ></polygon>
+            </svg>
+            <h3 class="text-lg font-bold text-slate-800">Regras do Jogo</h3>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Method Card 1 -->
+            <div
+              class="bg-white p-5 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow group"
+            >
+              <div class="flex items-start justify-between mb-3">
+                <div
+                  class="bg-blue-50 text-blue-600 p-2 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-6 w-6"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </div>
+              </div>
+              <h4 class="font-bold text-slate-800 mb-1">Velocidade 1.0x</h4>
+              <p class="text-sm text-slate-500 leading-snug">
+                Assista na velocidade normal para máxima absorção e anotações
+                precisas.
+              </p>
+            </div>
+
+            <!-- Method Card 2 -->
+            <div
+              class="bg-white p-5 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow group"
+            >
+              <div class="flex items-start justify-between mb-3">
+                <div
+                  class="bg-rose-50 text-rose-600 p-2 rounded-lg group-hover:bg-rose-600 group-hover:text-white transition-colors"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-6 w-6"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M5 22h14"></path>
+                    <path d="M5 2h14"></path>
+                    <path
+                      d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"
+                    ></path>
+                    <path
+                      d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+              <h4 class="font-bold text-slate-800 mb-1">Ciclos 50/10</h4>
+              <p class="text-sm text-slate-500 leading-snug">
+                50 min de teoria atenta + 10 min de questões imediatas para
+                fixação.
+              </p>
+            </div>
+
+            <!-- Method Card 3 -->
+            <div
+              class="bg-white p-5 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow group"
+            >
+              <div class="flex items-start justify-between mb-3">
+                <div
+                  class="bg-purple-50 text-purple-600 p-2 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition-colors"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-6 w-6"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+              <h4 class="font-bold text-slate-800 mb-1">Mãos Livres</h4>
+              <p class="text-sm text-slate-500 leading-snug">
+                Não copie o quadro. Use o PDF/Degravação e anote apenas
+                palavras-chave.
+              </p>
+            </div>
+
+            <!-- Method Card 4 -->
+            <div
+              class="bg-white p-5 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow group"
+            >
+              <div class="flex items-start justify-between mb-3">
+                <div
+                  class="bg-amber-50 text-amber-600 p-2 rounded-lg group-hover:bg-amber-600 group-hover:text-white transition-colors"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-6 w-6"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polygon
+                      points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"
+                    ></polygon>
+                  </svg>
+                </div>
+              </div>
+              <h4 class="font-bold text-slate-800 mb-1">Filtro Correto</h4>
+              <p class="text-sm text-slate-500 leading-snug">
+                Priorize bancas <strong>IADES</strong> ou
+                <strong>Quadrix</strong> no Gran Questões.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Radar Chart (Right - 4 cols) -->
+        <div class="lg:col-span-4 flex flex-col">
+          <div class="flex items-center gap-2 mb-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-6 w-6 text-slate-700"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+              <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+            </svg>
+            <h3 class="text-lg font-bold text-slate-800">Foco Fase 1</h3>
+          </div>
+          <div
+            class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex-1 flex flex-col items-center justify-center relative"
+          >
+            <div class="chart-container">
+              <canvas id="balanceChart"></canvas>
+            </div>
+            <div
+              class="mt-2 px-3 py-1 bg-slate-50 rounded-full text-[10px] font-bold text-slate-400 uppercase tracking-widest border border-slate-100"
+            >
+              Peso Estratégico
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Interactive Planner -->
+      <section
+        id="planner"
+        class="scroll-mt-24 animate-slide-up"
+        style="animation-delay: 0.3s"
+      >
+        <div class="flex items-end justify-between mb-6">
+          <div>
+            <h3
+              class="text-2xl font-bold text-slate-800 flex items-center gap-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-7 w-7 text-blue-600"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              Cronograma Semanal
+            </h3>
+            <p class="text-slate-500 mt-1">
+              Alterne as abas para visualizar sua missão diária.
+            </p>
+          </div>
+        </div>
+
+        <div
+          class="bg-white rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200 overflow-hidden"
+        >
+          <!-- Tabs -->
+          <div
+            class="flex border-b border-slate-100 overflow-x-auto scrollbar-hide"
+          >
+            <button
+              class="flex-1 py-4 px-4 text-center font-medium text-sm sm:text-base border-b-2 transition-all whitespace-nowrap focus:outline-none"
+              id="tab-cycle-a"
+              onclick="App.switchTab('cycle-a')"
+            >
+              CICLO A (Seg/Qua/Sex)
+            </button>
+            <button
+              class="flex-1 py-4 px-4 text-center font-medium text-sm sm:text-base border-b-2 transition-all whitespace-nowrap focus:outline-none"
+              id="tab-cycle-b"
+              onclick="App.switchTab('cycle-b')"
+            >
+              CICLO B (Ter/Qui/Sáb)
+            </button>
+            <button
+              class="flex-1 py-4 px-4 text-center font-medium text-sm sm:text-base border-b-2 transition-all whitespace-nowrap focus:outline-none"
+              id="tab-sunday"
+              onclick="App.switchTab('sunday')"
+            >
+              DOMINGO
+            </button>
+          </div>
+
+          <!-- Content Area -->
+          <div class="p-6 md:p-10 min-h-[300px] bg-slate-50/30 relative">
+            <!-- Cycle A Content -->
+            <div id="content-cycle-a" class="animate-fade-in block">
+              <div class="mb-6 flex items-center justify-between">
+                <span
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-3 w-3"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                  </svg>
+                  Base Sólida
+                </span>
+                <span class="text-sm text-slate-400 font-medium"
+                  >Dias: 01, 03, 05</span
+                >
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Card Hour 1 -->
+                <div
+                  class="bg-white p-6 rounded-xl border-l-4 border-blue-500 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <h4 class="text-lg font-bold text-slate-800 mb-1">
+                    1ª Hora: Língua Portuguesa
+                  </h4>
+                  <p
+                    class="text-xs text-slate-500 mb-4 uppercase tracking-wider font-semibold"
+                  >
+                    Consistência
+                  </p>
+                  <ul class="space-y-3">
+                    <li class="flex items-start gap-3 text-sm text-slate-700">
+                      <div
+                        class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-3 w-3"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                      </div>
+                      <span class="mt-0.5"
+                        >Assistir <strong>2 videoaulas</strong> (1.0x)</span
+                      >
+                    </li>
+                    <li class="flex items-start gap-3 text-sm text-slate-700">
+                      <div
+                        class="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-3 w-3"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </div>
+                      <span class="mt-0.5">Fazer 5 questões de fixação</span>
+                    </li>
+                  </ul>
+                </div>
+                <!-- Card Hour 2 -->
+                <div
+                  class="bg-white p-6 rounded-xl border-l-4 border-blue-400 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <h4 class="text-lg font-bold text-slate-800 mb-1">
+                    2ª Hora: Dir. Administrativo
+                  </h4>
+                  <p
+                    class="text-xs text-slate-500 mb-4 uppercase tracking-wider font-semibold"
+                  >
+                    Fundamental
+                  </p>
+                  <ul class="space-y-3">
+                    <li class="flex items-start gap-3 text-sm text-slate-700">
+                      <div
+                        class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-3 w-3"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                      </div>
+                      <span class="mt-0.5"
+                        >Assistir <strong>2 videoaulas</strong> (1.0x)</span
+                      >
+                    </li>
+                    <li class="flex items-start gap-3 text-sm text-slate-700">
+                      <div
+                        class="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-3 w-3"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </div>
+                      <span class="mt-0.5">Fazer 5 questões de fixação</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cycle B Content -->
+            <div id="content-cycle-b" class="animate-fade-in hidden">
+              <div class="mb-6 flex items-center justify-between">
+                <span
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-800"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-3 w-3"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polygon
+                      points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
+                    ></polygon>
+                  </svg>
+                  Tiro Curto + Lógica
+                </span>
+                <span class="text-sm text-slate-400 font-medium"
+                  >Dias: 02, 04, 06</span
+                >
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Card Hour 1 (Priority) -->
+                <div
+                  class="bg-gradient-to-br from-white to-rose-50 p-6 rounded-xl border-l-4 border-rose-500 shadow-sm hover:shadow-md transition-shadow relative"
+                >
+                  <div class="absolute top-4 right-4 text-rose-200 opacity-30">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-12 w-12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      ></path>
+                    </svg>
+                  </div>
+                  <h4 class="text-lg font-bold text-rose-900 mb-1">
+                    1ª Hora: Conh. Específicos
+                  </h4>
+                  <p
+                    class="text-xs text-rose-700 mb-4 uppercase tracking-wider font-bold"
+                  >
+                    PRIORIDADE TOTAL
+                  </p>
+                  <ul class="space-y-3 relative z-10">
+                    <li
+                      class="flex items-start gap-3 text-sm text-slate-800 font-medium"
+                    >
+                      <div
+                        class="flex-shrink-0 w-6 h-6 rounded-full bg-rose-200 text-rose-700 flex items-center justify-center"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-3 w-3"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                      </div>
+                      <span class="mt-0.5">Assistir 2 videoaulas (1.0x)</span>
+                    </li>
+                    <li
+                      class="flex items-start gap-3 text-xs text-slate-500 italic mt-2"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 text-rose-500"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                        ></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                      </svg>
+                      <span>Marque no "Tracker" abaixo imediatamente.</span>
+                    </li>
+                  </ul>
+                </div>
+                <!-- Card Hour 2 -->
+                <div
+                  class="bg-white p-6 rounded-xl border-l-4 border-purple-400 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <h4 class="text-lg font-bold text-slate-800 mb-1">
+                    2ª Hora: Raciocínio Lógico
+                  </h4>
+                  <p
+                    class="text-xs text-slate-500 mb-4 uppercase tracking-wider font-semibold"
+                  >
+                    Estudo Ativo
+                  </p>
+                  <ul class="space-y-3">
+                    <li class="flex items-start gap-3 text-sm text-slate-700">
+                      <div
+                        class="flex-shrink-0 w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-3 w-3"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                      </div>
+                      <span class="mt-0.5">Assistir 2 videoaulas</span>
+                    </li>
+                    <li class="flex items-start gap-3 text-sm text-slate-700">
+                      <div
+                        class="flex-shrink-0 w-6 h-6 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-3 w-3"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <rect x="6" y="4" width="4" height="4"></rect>
+                          <rect x="6" y="16" width="4" height="4"></rect>
+                          <rect x="14" y="4" width="4" height="4"></rect>
+                          <rect x="14" y="16" width="4" height="4"></rect>
+                          <line x1="12" y1="2" x2="12" y2="22"></line>
+                          <line x1="2" y1="12" x2="22" y2="12"></line>
+                        </svg>
+                      </div>
+                      <span class="mt-0.5">Pausar vídeo e resolver antes</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sunday Content -->
+            <div id="content-sunday" class="animate-fade-in hidden">
+              <div
+                class="flex flex-col items-center justify-center py-10 text-center"
+              >
+                <div
+                  class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-3xl mb-4 shadow-inner"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-8 w-8 text-slate-400"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect
+                      x="1"
+                      y="6"
+                      width="18"
+                      height="12"
+                      rx="2"
+                      ry="2"
+                    ></rect>
+                    <line x1="23" y1="13" x2="23" y2="11"></line>
+                    <polygon
+                      points="10 14 13 12 10 10 10 14"
+                      fill="currentColor"
+                    ></polygon>
+                  </svg>
+                </div>
+                <h4 class="text-xl font-bold text-slate-800">Dia de Recarga</h4>
+                <p class="text-slate-600 max-w-md mt-2 leading-relaxed">
+                  O descanso faz parte da neurociência do aprendizado.
+                  <br /><span class="text-sm text-slate-400 mt-2 block"
+                    >Se houver atraso, use apenas 1h para reposição
+                    pontual.</span
+                  >
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mission Control Tracker -->
+      <section
+        id="tracker"
+        class="scroll-mt-24 animate-slide-up"
+        style="animation-delay: 0.4s"
+      >
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <!-- Tracker Left: Stats Panel -->
+          <div
+            class="bg-slate-850 text-white p-8 rounded-2xl shadow-xl flex flex-col justify-between relative overflow-hidden"
+          >
+            <!-- Decor -->
+            <div
+              class="absolute -right-10 -top-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl"
+            ></div>
+
+            <div class="relative z-10">
+              <div class="flex items-center gap-2 mb-2">
+                <span
+                  class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"
+                ></span>
+                <span
+                  class="text-xs font-bold text-emerald-400 uppercase tracking-widest"
+                  >Tempo Real</span
+                >
+              </div>
+              <h3 class="text-2xl font-bold mb-1">Missão Específica</h3>
+              <p class="text-slate-400 text-sm mb-8">
+                Meta: 28 Aulas de Conhecimentos Específicos
+              </p>
+
+              <div class="mb-8">
+                <div class="flex justify-between items-end mb-3">
+                  <span
+                    class="text-5xl font-bold text-white tracking-tighter"
+                    id="progress-percent"
+                    >0%</span
+                  >
+                  <span
+                    class="text-sm font-medium text-slate-400 mb-1"
+                    id="progress-text"
+                    >0/28</span
+                  >
+                </div>
+                <!-- Custom Progress Bar -->
+                <div
+                  class="w-full bg-slate-700/50 rounded-full h-3 overflow-hidden backdrop-blur-sm"
+                >
+                  <div
+                    id="progress-bar"
+                    class="bg-gradient-to-r from-emerald-500 to-teal-400 h-3 rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(16,185,129,0.5)]"
+                    style="width: 0%"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="bg-slate-800/80 backdrop-blur border border-slate-700 p-5 rounded-xl relative z-10 mt-auto"
+            >
+              <p
+                class="text-[10px] text-slate-400 uppercase tracking-wide mb-1 font-bold"
+              >
+                Status da Campanha
+              </p>
+              <div
+                id="current-phase-display"
+                class="transition-all duration-300"
+              >
+                <p class="font-bold text-lg text-white">Fase 1: Ativa</p>
+                <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                  Complete 100% para desbloquear o módulo LODF.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tracker Right: Checklist -->
+          <div
+            class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 flex flex-col"
+          >
+            <h4
+              class="font-bold text-slate-800 text-lg mb-4 border-b border-slate-100 pb-3 flex items-center justify-between"
+            >
+              <span class="flex items-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5 text-slate-500"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M9 11l3 3L22 4"></path>
+                  <path
+                    d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+                  ></path>
+                </svg>
+                Checklist de Aulas
+              </span>
+              <div class="flex items-center gap-2">
+                <span
+                  class="text-xs font-normal text-slate-400 bg-slate-50 px-2 py-1 rounded"
+                  >2 aulas/dia</span
+                >
+                <button
+                  onclick="App.resetProgress()"
+                  class="text-xs font-semibold text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2 py-1 rounded transition-colors flex items-center gap-1"
+                  title="Limpar todo o progresso"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-3 w-3"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                  </svg>
+                  Limpar
+                </button>
+              </div>
+            </h4>
+
+            <div
+              class="overflow-y-auto max-h-[400px] pr-2 space-y-6"
+              id="tracker-container"
+            >
+              <!-- JS injected content -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Roadmap Timeline -->
+      <section class="animate-slide-up" style="animation-delay: 0.5s">
+        <div class="flex items-center gap-3 mb-8">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-8 w-8 text-blue-600"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+          <h3 class="text-2xl font-bold text-slate-800">Mapa da Evolução</h3>
+        </div>
+
+        <div class="relative space-y-0 pl-4 md:pl-0">
+          <!-- Phase 1 -->
+          <div
+            class="timeline-item relative pb-10 md:pl-10 border-l-0 md:border-l-0"
+          >
+            <div
+              class="timeline-line hidden md:block md:absolute md:left-[23px] md:top-6 md:bottom-0 md:w-0.5 md:bg-slate-200"
+            ></div>
+
+            <div class="flex flex-col md:flex-row gap-6 group">
+              <!-- Icon Marker -->
+              <div
+                class="hidden md:flex flex-shrink-0 w-12 h-12 rounded-full bg-blue-600 text-white items-center justify-center font-bold text-lg shadow-lg shadow-blue-200 relative z-10 ring-4 ring-white"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="22" y1="12" x2="18" y2="12"></line>
+                  <line x1="6" y1="12" x2="2" y2="12"></line>
+                  <line x1="12" y1="6" x2="12" y2="2"></line>
+                  <line x1="12" y1="22" x2="12" y2="18"></line>
+                </svg>
+              </div>
+
+              <!-- Content -->
+              <div
+                class="flex-1 bg-white p-6 rounded-xl shadow-sm border border-blue-100 hover:border-blue-300 transition-colors relative overflow-hidden"
+              >
+                <div
+                  class="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-600"
+                ></div>
+                <div class="flex justify-between items-start">
+                  <div>
+                    <div class="flex items-center gap-2 mb-1">
+                      <h4 class="font-bold text-slate-800 text-lg">
+                        Foco Total: Específicas
+                      </h4>
+                      <span
+                        class="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase"
+                        >Atual</span
+                      >
+                    </div>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                      Ciclo B dedicado a eliminar as 28 aulas de Conhecimentos
+                      Específicos. Base de Português e Direito em paralelo.
+                    </p>
+                  </div>
+                  <span
+                    class="text-4xl text-slate-100 font-bold -mt-2 -mr-2 select-none group-hover:text-blue-50 transition-colors"
+                    >01</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Phase 2 -->
+          <div class="timeline-item relative pb-10 md:pl-10">
+            <div
+              class="timeline-line hidden md:block md:absolute md:left-[23px] md:top-6 md:bottom-0 md:w-0.5 md:bg-slate-200"
+            ></div>
+
+            <div
+              class="flex flex-col md:flex-row gap-6 group opacity-70 hover:opacity-100 transition-opacity"
+            >
+              <div
+                class="hidden md:flex flex-shrink-0 w-12 h-12 rounded-full bg-white border-2 border-slate-300 text-slate-400 items-center justify-center font-bold text-lg relative z-10"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                  <path
+                    d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
+                  ></path>
+                </svg>
+              </div>
+
+              <div
+                class="flex-1 bg-slate-50 p-6 rounded-xl border border-slate-200 border-dashed hover:border-solid hover:bg-white transition-all"
+              >
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-slate-700 text-lg mb-1">
+                      Entrada da LODF
+                    </h4>
+                    <p class="text-sm text-slate-500">
+                      Ao zerar Específicas, substitua pelo estudo da Lei
+                      Orgânica do DF (~4 semanas).
+                    </p>
+                  </div>
+                  <span
+                    class="text-4xl text-slate-200 font-bold -mt-2 -mr-2 select-none"
+                    >02</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Phase 3 -->
+          <div class="timeline-item relative md:pl-10">
+            <div
+              class="flex flex-col md:flex-row gap-6 group opacity-50 hover:opacity-100 transition-opacity"
+            >
+              <div
+                class="hidden md:flex flex-shrink-0 w-12 h-12 rounded-full bg-white border-2 border-slate-300 text-slate-400 items-center justify-center font-bold text-lg relative z-10"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                  <line x1="8" y1="21" x2="16" y2="21"></line>
+                  <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+              </div>
+
+              <div
+                class="flex-1 bg-slate-50 p-6 rounded-xl border border-slate-200 border-dashed hover:border-solid hover:bg-white transition-all"
+              >
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-slate-700 text-lg mb-1">
+                      Refino Final: Informática
+                    </h4>
+                    <p class="text-sm text-slate-500">
+                      Fase final de conteúdo. Introdução de Informática e
+                      intensificação de revisões.
+                    </p>
+                  </div>
+                  <span
+                    class="text-4xl text-slate-200 font-bold -mt-2 -mr-2 select-none"
+                    >03</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 mt-12 py-10">
+      <div class="max-w-6xl mx-auto px-4 text-center">
+        <p class="text-slate-500 text-sm font-medium">
+          Plano de Estudos Otimizado • DER-DF
+        </p>
+        <p class="text-slate-400 text-xs mt-2">
+          Baseado em metodologia de ciclos e repetição espaçada.
+        </p>
+      </div>
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+      /**
+       * App Module - Encapsulates logic to prevent global scope pollution
+       */
+      const App = {
+        config: {
+          totalLessons: 28,
+          storageKey: "derDfStudyTracker_v2", // Versioned key
+          chartColors: {
+            fill: "rgba(59, 130, 246, 0.2)",
+            stroke: "rgba(59, 130, 246, 1)",
+            point: "rgba(30, 64, 175, 1)",
+          },
+        },
+        state: {
+          completedLessons: [],
+        },
+
+        init() {
+          this.loadState();
+          this.initChart();
+          this.renderTracker();
+          this.setupTabs();
+          console.log("App Initialized successfully.");
+        },
+
+        // --- State Management ---
+        loadState() {
+          try {
+            const stored = localStorage.getItem(this.config.storageKey);
+            if (stored) {
+              this.state = JSON.parse(stored);
+            }
+          } catch (e) {
+            console.warn("LocalStorage access blocked or unavailable:", e);
+            // Fallback to default state (in-memory only)
+          }
+        },
+
+        saveState() {
+          try {
+            localStorage.setItem(
+              this.config.storageKey,
+              JSON.stringify(this.state)
+            );
+          } catch (e) {
+            console.warn("Could not save to LocalStorage:", e);
+          }
+          this.updateTrackerUI();
+        },
+
+        // --- UI Interaction ---
+        scrollTo(id) {
+          const el = document.getElementById(id);
+          if (el) {
+            const headerOffset = 80;
+            const elementPosition = el.getBoundingClientRect().top;
+            const offsetPosition =
+              elementPosition + window.pageYOffset - headerOffset;
+            window.scrollTo({ top: offsetPosition, behavior: "smooth" });
+          }
+        },
+
+        switchTab(tabId) {
+          const tabs = ["cycle-a", "cycle-b", "sunday"];
+          const colors = {
+            "cycle-a": "border-blue-600 text-blue-700 bg-blue-50",
+            "cycle-b": "border-rose-600 text-rose-700 bg-rose-50",
+            sunday: "border-emerald-600 text-emerald-700 bg-emerald-50",
+          };
+
+          tabs.forEach((id) => {
+            const btn = document.getElementById(`tab-${id}`);
+            const content = document.getElementById(`content-${id}`);
+
+            if (id === tabId) {
+              // Activate
+              btn.className = `flex-1 py-4 px-4 text-center font-bold text-sm sm:text-base border-b-2 transition-all whitespace-nowrap focus:outline-none ${colors[id]}`;
+              content.classList.remove("hidden");
+              content.classList.add("animate-fade-in");
+            } else {
+              // Deactivate
+              btn.className =
+                "flex-1 py-4 px-4 text-center font-medium text-sm sm:text-base border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all whitespace-nowrap focus:outline-none";
+              content.classList.add("hidden");
+              content.classList.remove("animate-fade-in");
+            }
+          });
+        },
+
+        setupTabs() {
+          this.switchTab("cycle-a"); // Default
+        },
+
+        // --- Feature: Chart ---
+        initChart() {
+          const canvas = document.getElementById("balanceChart");
+          if (!canvas) return;
+
+          const ctx = canvas.getContext("2d");
+
+          // Chart.js Configuration
+          Chart.defaults.font.family = "'Inter', sans-serif";
+          Chart.defaults.color = "#64748b";
+
+          new Chart(ctx, {
+            type: "radar",
+            data: {
+              labels: [
+                "Português",
+                "Dir. Administrativo",
+                "Específicas",
+                "Rac. Lógico",
+                "LODF",
+                "Informática",
+              ],
+              datasets: [
+                {
+                  label: "Intensidade de Estudo (Fase 1)",
+                  data: [85, 85, 100, 75, 0, 0], // Data points
+                  backgroundColor: this.config.chartColors.fill,
+                  borderColor: this.config.chartColors.stroke,
+                  pointBackgroundColor: this.config.chartColors.point,
+                  pointBorderColor: "#fff",
+                  pointHoverBackgroundColor: "#fff",
+                  pointHoverBorderColor: this.config.chartColors.point,
+                  borderWidth: 2,
+                  pointRadius: 3,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                r: {
+                  angleLines: { color: "#e2e8f0" },
+                  grid: { color: "#f1f5f9" },
+                  pointLabels: {
+                    font: { size: 11, weight: "600" },
+                    color: "#475569",
+                  },
+                  ticks: { display: false, backdropColor: "transparent" },
+                  suggestedMin: 0,
+                  suggestedMax: 100,
+                },
+              },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  backgroundColor: "#1e293b",
+                  titleColor: "#f8fafc",
+                  bodyColor: "#cbd5e1",
+                  padding: 10,
+                  cornerRadius: 8,
+                  displayColors: false,
+                  callbacks: {
+                    label: (ctx) =>
+                      ctx.raw > 0
+                        ? `Prioridade: ${ctx.raw}%`
+                        : "Aguardando Fase 2",
+                  },
+                },
+              },
+            },
+          });
+        },
+
+        // --- Feature: Lesson Tracker ---
+        renderTracker() {
+          const container = document.getElementById("tracker-container");
+          if (!container) return;
+
+          container.innerHTML = "";
+
+          // Weeks configuration
+          const weeks = [
+            { title: "Semana 01", range: [1, 6] },
+            { title: "Semana 02", range: [7, 12] },
+            { title: "Semana 03", range: [13, 18] },
+            { title: "Semana 04", range: [19, 24] },
+            { title: "Semana 05", range: [25, 28] },
+          ];
+
+          weeks.forEach((week) => {
+            const group = document.createElement("div");
+            group.className = "mb-4";
+
+            const title = document.createElement("h5");
+            title.className =
+              "text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1";
+            title.textContent = week.title;
+            group.appendChild(title);
+
+            const grid = document.createElement("div");
+            grid.className = "grid grid-cols-1 sm:grid-cols-2 gap-3";
+
+            for (let i = week.range[0]; i <= week.range[1]; i++) {
+              const lessonIdx = i - 1;
+              const isChecked = this.state.completedLessons.includes(lessonIdx);
+
+              const item = document.createElement("label");
+              item.className = `custom-checkbox flex items-center p-3 rounded-lg border cursor-pointer transition-all hover:bg-slate-50 ${
+                isChecked
+                  ? "bg-slate-50 border-emerald-100"
+                  : "bg-white border-slate-200"
+              }`;
+
+              item.innerHTML = `
+                            <input type="checkbox" class="sr-only" ${
+                              isChecked ? "checked" : ""
+                            } onchange="App.toggleLesson(${lessonIdx})">
+                            <div class="w-5 h-5 border-2 border-slate-300 rounded mr-3 bg-white flex-shrink-0"></div>
+                            <span class="text-sm font-medium select-none ${
+                              isChecked
+                                ? "text-slate-400 line-through decoration-slate-300"
+                                : "text-slate-700"
+                            }">
+                                Aula ${i < 10 ? "0" + i : i}
+                            </span>
+                        `;
+              grid.appendChild(item);
+            }
+            group.appendChild(grid);
+            container.appendChild(group);
+          });
+
+          this.updateTrackerUI();
+        },
+
+        toggleLesson(idx) {
+          if (this.state.completedLessons.includes(idx)) {
+            this.state.completedLessons = this.state.completedLessons.filter(
+              (i) => i !== idx
+            );
+          } else {
+            this.state.completedLessons.push(idx);
+          }
+          this.saveState();
+          this.renderTracker(); // Re-render to update classes
+        },
+
+        // --- Feature: Reset Progress (NEW) ---
+        resetProgress() {
+          if (
+            confirm(
+              "Tem certeza que deseja limpar todo o progresso? Essa ação não pode ser desfeita."
+            )
+          ) {
+            this.state.completedLessons = [];
+            this.saveState();
+            this.renderTracker();
+          }
+        },
+
+        updateTrackerUI() {
+          const count = this.state.completedLessons.length;
+          const percent = Math.round((count / this.config.totalLessons) * 100);
+
+          // Elements
+          const pctEl = document.getElementById("progress-percent");
+          const textEl = document.getElementById("progress-text");
+          const barEl = document.getElementById("progress-bar");
+          const statusEl = document.getElementById("current-phase-display");
+
+          if (pctEl) pctEl.textContent = `${percent}%`;
+          if (textEl)
+            textEl.textContent = `${count}/${this.config.totalLessons}`;
+          if (barEl) barEl.style.width = `${percent}%`;
+
+          if (statusEl) {
+            if (percent === 100) {
+              statusEl.innerHTML = `
+                            <p class="font-bold text-lg text-emerald-400 animate-pulse">🎉 FASE 1 CONCLUÍDA!</p>
+                            <p class="text-xs text-slate-300 mt-1">Excelente! Inicie o estudo da LODF amanhã.</p>
+                        `;
+            } else {
+              statusEl.innerHTML = `
+                            <p class="font-bold text-lg text-white">Fase 1: Ativa</p>
+                            <p class="text-xs text-slate-400 mt-1 leading-relaxed">Complete 100% para desbloquear o módulo LODF.</p>
+                        `;
+            }
+          }
+        },
+      };
+
+      // Bootstrap App
+      window.addEventListener("DOMContentLoaded", () => {
+        App.init();
+      });
+    </script>
+  </body>
+</html>
