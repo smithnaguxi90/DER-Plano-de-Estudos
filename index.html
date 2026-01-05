@@ -42,23 +42,22 @@
       };
     </script>
     <style>
-      /* Custom Styles for specific UI components */
+      /* Responsive Chart Container */
       .chart-container {
         position: relative;
         width: 100%;
-        height: 280px; /* Base height for mobile */
-        max-height: 350px;
+        height: 280px; /* Mobile Height */
         margin: 0 auto;
       }
       @media (min-width: 640px) {
         .chart-container {
-          height: 320px; /* Tablet */
-        }
+          height: 320px;
+        } /* Tablet Height */
       }
       @media (min-width: 1024px) {
         .chart-container {
-          height: 350px; /* Desktop */
-        }
+          height: 350px;
+        } /* Desktop Height */
       }
 
       /* Custom Checkbox Styling */
@@ -84,25 +83,30 @@
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
-      /* Timeline styling - Responsive adjustments */
-      .timeline-line::before {
-        content: "";
-        position: absolute;
-        left: 24px;
-        top: 20px;
-        bottom: -20px;
-        width: 2px;
-        background-color: #e2e8f0;
-        z-index: 0;
-      }
-      /* Hide line on mobile for cleaner look or adjust if needed */
-      @media (max-width: 768px) {
+      /* Timeline styling for Desktop */
+      @media (min-width: 768px) {
         .timeline-line::before {
-          left: 15px; /* Adjust line position for smaller screens */
+          content: "";
+          position: absolute;
+          left: 23px;
+          top: 24px;
+          bottom: -24px;
+          width: 2px;
+          background-color: #e2e8f0;
+          z-index: 0;
+        }
+        .timeline-item:last-child .timeline-line::before {
+          display: none;
         }
       }
-      .timeline-item:last-child .timeline-line::before {
+
+      /* Hide Scrollbar for horizontal scrolling tabs */
+      .scrollbar-hide::-webkit-scrollbar {
         display: none;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
       }
     </style>
     <!-- Chosen Palette: Professional Slate (Dark/Light), Accent Blue/Rose/Emerald -->
@@ -139,7 +143,7 @@
           </div>
           <div>
             <h1
-              class="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-none truncate max-w-[150px] sm:max-w-none"
+              class="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-none truncate max-w-[200px] sm:max-w-none"
             >
               DER-DF <span class="text-blue-600">Estrategista</span>
             </h1>
@@ -150,6 +154,7 @@
             </p>
           </div>
         </div>
+        <!-- Hidden on mobile to save space, visible on tablet+ -->
         <div class="hidden sm:flex flex-col items-end">
           <p
             class="text-[10px] uppercase text-slate-400 font-bold tracking-wider"
@@ -167,7 +172,7 @@
     </header>
 
     <main
-      class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8 sm:space-y-10 flex-grow"
+      class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8 sm:space-y-12 flex-grow"
     >
       <!-- Hero / Context Section -->
       <section class="animate-slide-up" style="animation-delay: 0.1s">
